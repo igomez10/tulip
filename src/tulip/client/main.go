@@ -1,6 +1,7 @@
 package client
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -12,51 +13,52 @@ import (
 	"strconv"
 )
 
+// Client is the struct that interacts with buda server and executes the requests
 type Client struct {
-	ApiURL        string
-	ApiKey        string
-	ApiSecret     string
+	APIURL        string
+	APIKey        string
+	APISecret     string
 	Nonce         int32
 	Authenticated bool
 }
 
 // GetMarkets Returns info about all markets
 func (c *Client) GetMarkets() string {
-	finalURL := c.ApiURL + "/markets"
-	return execute("GET", finalURL, false)
+	finalURL := c.APIURL + "/markets"
+	return execute("GET", finalURL, "", "", "")
 }
 
 // GetTicker Returns info about a specific market
 func (c *Client) GetTicker(ticker string) string {
-	finalURL := c.ApiURL + "/markets/" + ticker
-	return execute("GET", finalURL, false)
+	finalURL := c.APIURL + "/markets/" + ticker
+	return execute("GET", finalURL, "", "", "")
 }
 
 //GetOrderBook is used to get current state of the market.
 // It shows the best offers (bid, ask) and the price from the
 // last transaction, daily volume and the price in the last 24 hours
 func (c *Client) GetOrderBook(marketID string) string {
-	finalURL := c.ApiURL + "/markets/" + marketID + "/order_book"
-	return execute("GET", finalURL, false)
+	finalURL := c.APIURL + "/markets/" + marketID + "/order_book"
+	return execute("GET", finalURL, "", "", "")
 }
 
 //GetTrades returns a list of recent trades
 func (c *Client) GetTrades(marketID string) string {
-	finalURL := c.ApiURL + "/markets/" + marketID + "/trades"
-	return execute("GET", finalURL, false)
+	finalURL := c.APIURL + "/markets/" + marketID + "/trades"
+	return execute("GET", finalURL, "", "", "")
 }
 
-func execute(method string, completeURL string, requiresAuth bool) string {
-	if method == "GET" && requiresAuth == false {
+func execute(method string, completeURL string, apikey string, signature string, Nonce string) string {
+	responseData := "An error ocurred, ocurred, check the request method, only GET is allowed at the moment. Also check your apikey ,signature and nonce"
+	httpClient := &http.Client{}
+	req, err := http.NewRequest("GET", completeURL, nil)
+	if err != nil {
+		log.Fatal(("Error creating new request, submitted url was: " +
+			completeURL + "with method" + method +
+			". Error: "), err)
+	}
 
-		req, err := http.NewRequest("GET", completeURL, nil)
-		if err != nil {
-			log.Fatal(("Error creating new request, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
-		}
-
-		httpClient := &http.Client{}
+	if method == "GET" && apikey == "" && signature == "" && Nonce == "" {
 
 		res, err := httpClient.Do(req)
 		if err != nil {
@@ -71,65 +73,80 @@ func execute(method string, completeURL string, requiresAuth bool) string {
 				completeURL + "with method" + method +
 				". Error: "), err)
 		}
-		return string(body)
+		responseData = string(body)
 
 		// TODO ADD POST METHODS
+	} else if method == "GET" && apikey != "" && signature != "" && Nonce != "" {
+		req.Header.Set("X-SBTC-SIGNATURE", signature)
+		req.Header.Set("X-SBTC-APIKEY", apikey)
+		req.Header.Set("X-SBTC-NONCE", Nonce)
+		res, err := httpClient.Do(req)
+		if err != nil {
+			log.Fatal(("Error executing new request, submitted url was: " +
+				completeURL + "with method" + method +
+				". Error: "), err)
+		}
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Fatal(("Error reading response, submitted url was: " +
+				completeURL + "with method" + method +
+				". Error: "), err)
+		}
+		responseData = string(body)
 	}
-	// if method == "GET" && requiresAuth == true {
-	// 	Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-	// 	shortURL := comple
-	// 	stringMessage := method + " " + strings.Replace(completeURL, old, new, n)+" " + Nonce
-	//
-	// 	// if c.Authenticated  == true{
-	// 	//
-	// 	// } else {
-	// 	// 	log.Fatal("this method requires Authentication. BUDAKEY(api public key), BUDASECRET (api secret key) env variables were not found")
-	// 	// 	}
-	// }
-
-	return "INCORRECT METHOD, ONLY GET IS AVAILABLE AT THE TIME"
+	return responseData
 }
 
 // HERE STARTS THE PRIVATE CALLS
 
-func (c *Client) signMessage(method string, query string, Nonce string) string {
+func signMessage(APISecret string, method string, query string, Nonce string) string {
 	stringMessage := method + " /api/v2/" + query + " " + Nonce
-	key := []byte(c.ApiSecret)
+	fmt.Println(stringMessage)
+	key := []byte(APISecret)
 	h := hmac.New(sha512.New384, key)
 	h.Write([]byte(stringMessage))
 	signature := hex.EncodeToString(h.Sum(nil))
 	return signature
 }
 
+// GetBalances get the wallet balances in all cryptocurrencies and fiat currencies
 func (c *Client) GetBalances() string {
+	const method string = "GET"
+	const query string = "balances"
 	if c.Authenticated == true {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.ApiURL + "/balances"
-		httpClient := &http.Client{}
-
-		req, err := http.NewRequest("GET", finalURL, nil)
-		if err != nil {
-			log.Fatal("err1", err)
-		}
-
-		signature := c.signMessage("GET", "balances", Nonce)
-
-		req.Header.Set("X-SBTC-SIGNATURE", signature)
-		req.Header.Set("X-SBTC-APIKEY", c.ApiKey)
-		req.Header.Set("X-SBTC-NONCE", Nonce)
-
-		res, err := httpClient.Do(req)
-		if err != nil {
-			log.Fatal("err2", err)
-		}
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Fatal("err3", err)
-		}
-		return string(body)
+		finalURL := c.APIURL + "/" + query
+		signature := signMessage(c.APISecret, method, query, Nonce)
+		return execute("GET", finalURL, c.APIKey, signature, Nonce)
 	}
+	return "AUTHENTICATION REQUIRED GetBalances"
+}
 
-	return "NOT AUTHENTICATED"
+// GetBalance get the wallet balance in a specific cryptocurrency or fiat currency
+func (c *Client) GetBalance(currency string) string {
+	const method string = "GET"
+	var query = "balances/" + currency
+	if c.Authenticated == true {
+		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+		finalURL := c.APIURL + "/" + query
+		signature := signMessage(c.APISecret, method, query, Nonce)
+		return execute("GET", finalURL, c.APIKey, signature, Nonce)
+	}
+	return "AUTHENTICATION REQUIRED GetBalance"
+}
 
+// GetOrders get the wallet balance in a specific cryptocurrency or fiat currency
+func (c *Client) GetOrders(marketID string, per int, page int, state string, minimumExchanged float64) string {
+	const method string = "GET"
+	var query = "markets/" + marketID + "/orders?per=" + strconv.Itoa(per) + "&page=" + strconv.Itoa(page) + "&state=" + state + "&minimumExchanged=" + strconv.FormatFloat(minimumExchanged, 'g', 20, 32)
+	fmt.Println("query " + query)
+	if c.Authenticated == true {
+		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
+		finalURL := c.APIURL + "/" + query
+		fmt.Println("finalurl " + finalURL)
+		signature := signMessage(c.APISecret, method, query, Nonce)
+		return execute("GET", finalURL, c.APIKey, signature, Nonce)
+	}
+	return "AUTHENTICATION REQUIRED GetOrders"
 }

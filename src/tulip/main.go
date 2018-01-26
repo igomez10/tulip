@@ -8,18 +8,18 @@ import (
 
 func main() {
 	// var authenticated bool = false
-	const apiURL string = "https://www.surbtc.com/api/v2"
-	var apiKey string = os.Getenv("BUDAKEY")
-	var apiSecret string = os.Getenv("BUDASECRET")
+	const APIURL string = "https://www.surbtc.com/api/v2"
+	APIKey := os.Getenv("BUDAKEY")
+	APISecret := os.Getenv("BUDASECRET")
 	var myClient client.Client
-	myClient.ApiURL = apiURL
-	if apiKey != "" && apiSecret != "" {
+	myClient.APIURL = APIURL
+	if APIKey != "" && APISecret != "" {
 
-		myClient.ApiURL = apiURL
-		myClient.ApiKey = apiKey
-		myClient.ApiSecret = apiSecret
+		myClient.APIURL = APIURL
+		myClient.APIKey = APIKey
+		myClient.APISecret = APISecret
 		myClient.Authenticated = true
-		fmt.Println(myClient.GetBalances())
+		fmt.Println(myClient.GetOrders("btc-cop", 300, 1, "received", float64(0.00001)))
 	}
 	// fmt.Printf(myClient.GetMarkets())
 	// fmt.Printf(myClient.GetTicker("btc-cop"))
