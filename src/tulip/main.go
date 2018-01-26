@@ -3,41 +3,27 @@ package main
 import (
 	"fmt"
 	"tulip/client"
+	"os"
 )
 
 func main() {
+	// var authenticated bool = false
+	const apiURL string = "https://www.surbtc.com/api/v2"
+	var apiKey string = os.Getenv("budakey")
+	var apiSecret string = os.Getenv("budasecret")
+	var myClient client.Client
+	myClient.ApiURL = apiURL
+	if apiKey != "" && apiSecret != "" {
 
-	// getMarkets()
-	// getTicker("btc-cop")
-	getOrderBook("btc-cop")
-}
+			myClient.ApiURL = apiURL
+			myClient.ApiKey = apiKey
+			myClient.ApiSecret = apiSecret
+			myClient.Authenticated = true
 
-// the apiUrl might change in the coming
-// days with the introduction of Buda as the new company name
-var apiURL = "https://www.surbtc.com/api/v2"
+		}
+		fmt.Printf(myClient.GetMarkets())
+		fmt.Printf(myClient.GetTicker("btc-cop"))
+		fmt.Printf(myClient.GetOrderBook("btc-cop"))
+		fmt.Printf(myClient.GetTrades("btc-cop"))
 
-// getMarket is usted to get info about all markets
-func getMarkets() {
-	res := client.GetMarkets(apiURL)
-	fmt.Print(res)
-}
-
-// getMarket is usted to get info about one (or every) market listed
-func getTicker(ticker string) {
-	res := client.GetTicker(apiURL, ticker)
-	fmt.Print(res)
-}
-
-// getOrderBook is used to get current state of the market.
-// It shows the best offers (bid, ask) and the price from the
-// last transaction, daily volume and the price in the last 24 hours
-func getOrderBook(marketID string) {
-	res := client.GetOrderBook(apiURL, marketID)
-	fmt.Print(res)
-}
-
-// getTrades is used to get a list of most recent trades
-func getTrades(marketID string) {
-	res := client.GetOrderBook(apiURL, marketID)
-	fmt.Print(res)
-}
+	}
