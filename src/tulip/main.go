@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"tulip/client"
 )
@@ -19,8 +18,15 @@ func main() {
 		myClient.APIKey = APIKey
 		myClient.APISecret = APISecret
 		myClient.Authenticated = true
-		fmt.Println(myClient.GetOrders("btc-cop", 300, 1, "received", float64(0.00001)))
+
 	}
+	// EXAMPLES:
+	// to create a new order that will never be fullfilled fmt.Println(myClient.PostOrder("btc-cop", "bid", "limit", float64(0.00001), float64(0.0001)))
+	// fmt.Println(myClient.PostOrder("btc-cop", "bid", "limit", float64(0.00001), float64(0.0001)))
+	// fmt.Println(myClient.GetOrders("btc-cop", 300, 1, "pending", float64(0)))
+	// fmt.Println(myClient.GetWithdrawHistory("cop"))
+	// fmt.Println(myClient.GetOrder("5205228"))
+	// fmt.Println(myClient.CancelOrder("5205033"))
 	// fmt.Printf(myClient.GetMarkets())
 	// fmt.Printf(myClient.GetTicker("btc-cop"))
 	// fmt.Printf(myClient.GetOrderBook("btc-cop"))
