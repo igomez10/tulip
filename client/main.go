@@ -1,4 +1,4 @@
-package tulip
+package client
 
 import (
 	"fmt"

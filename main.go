@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"tulip/client"
+
+	tulip "github.com/igomez10/tulip/src/tulip/client"
 )
 
 func main() {
