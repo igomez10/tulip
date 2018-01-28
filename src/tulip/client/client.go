@@ -35,6 +35,7 @@ type order struct {
 // CreateClient returns a new client
 func CreateClient(apikey string, apisecret string) *client {
 	var newClient client
+
 	if apikey != "" && apisecret != "" {
 		newClient.authenticated = true
 	}
