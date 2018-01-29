@@ -14,14 +14,31 @@ You can make unauthenticated calls (http://api.surbtc.com/#llamadas-p-blicas)
 BEWARE THIS IS OPEN SOURCE IN EARLY STAGES, I'M DOING MY BEST, FEEL FREE TO OPEN AN ISSUE / PULL REQUEST IF YOU FIND BUGS OR IF YOU WANT TO INCLUDE NEW FEATURES.
 If your pull request doesn't break anything I will happily merge it.
 
-This Client works with v2 of the surbtc API. It might need to change in the coming weeks with the change to Buda as their new name.
+This client works with v2 of the surbtc API. It might need to change in the coming weeks with the change to Buda as the company new name.
 I assume all endpoints will need to change to something similar to buda.com/api/v2/something .
 In the meantime, I'm testing it  with the latest API
+
+
+### Available Endpoints
+- #### Public
+  - Get markets info `GetMarkets()`
+  - Get ticker info `GetTicker()`
+  - Get all available orders for a market `GetOrderBook()`
+  - Get info about recent trades `GetTrades()`
+- #### Private (Requires APIkey)
+  - Get your current balance `GetBalances()`
+  - Get your orders `GetOrders()`
+  - Crate a new order (bid or ask) `PostOrder()`
+  - Cancel a current order `CancelOrder()`
+  - Get info about a specific order `GetOrder()`
+  - Get historic info about deposits `GetDepositHistory()`
+  - Get historic info about withdrawals `GetWithdrawHistory()`
 
 
 #### TODO Endpoints
 
   - Do Deposits and Withdrawals
+  - Create market-price orders (only limit-pricing available RN)
 
 ## Get it working
 
