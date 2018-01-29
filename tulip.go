@@ -1,19 +1,18 @@
 package tulip
 
 import (
-	"fmt"
-	"io/ioutil"
-	"net/http"
-	"strings"
-	"time"
-	// "fmt"
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 	"strconv"
+	"strings"
+	"time"
 )
 
 // Client is the struct that interacts with buda server and executes the requests
@@ -46,9 +45,17 @@ func CreateClient(apikey string, apisecret string) *client {
 }
 
 // GetMarkets Returns info about all markets
-func (c *client) GetMarkets() string {
+func (c *client) GetMarkets() (interface{}, error) {
 	finalURL := c.apiURL + "/markets"
-	return execute("GET", finalURL, "", "", "", "")
+	valorString := execute("GET", finalURL, "", "", "", "")
+	var jsondata Response
+	jsondata.Result = valorString
+	err := json.Unmarshal([]byte(valorString), &jsondata)
+	if err != nil {
+		return nil, fmt.Errorf("Could not execute request! #6 (%s)", err.Error())
+	}
+
+	return jsondata, nil
 }
 
 // GetTicker Returns info about a specific market
