@@ -1,4 +1,4 @@
-# Tulip
+# 🌷 Tulip 🌷
 
 
 
@@ -7,11 +7,11 @@ An open source API for surBTC (Buda) written in Go. An alternative for current a
 You can check the current surBTC (Buda) API documentation at http://api.surbtc.com
 
 NOTE: You need a developer account in order to make full use of this client.
-Although ya can make unauthenticated calls (http://api.surbtc.com/#llamadas-p-blicas)
+You can make unauthenticated calls (http://api.surbtc.com/#llamadas-p-blicas)
 
 ##### DISCLAIMER
 
-BEWARE THIS IS OPEN SOURCE IN EARLY STAGES, IM DOING MY BEST, FEEL FREE TO OPEN AN ISSUE / PULL REQUEST IF YOU FIND BUGS OR IF YOU WANT TO INCLUDE NEW FEATURES.
+BEWARE THIS IS OPEN SOURCE IN EARLY STAGES, I'M DOING MY BEST, FEEL FREE TO OPEN AN ISSUE / PULL REQUEST IF YOU FIND BUGS OR IF YOU WANT TO INCLUDE NEW FEATURES.
 If your pull request doesn't break anything I will happily merge it.
 
 This Client works with v2 of the surbtc API. It might need to change in the coming weeks with the change to Buda as their new name.
@@ -25,7 +25,7 @@ In the meantime, I'm testing it  with the latest API
 
 ## Get it working
 
-In you terminal:
+In your terminal:
 ```sh
 $ go get github.com/igomez10/tulip
 ```
