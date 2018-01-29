@@ -177,7 +177,7 @@ func (c *client) GetBalance(currency string) string {
 	return "AUTHENTICATION REQUIRED GetBalance"
 }
 
-// GetOrders get the wallet balance in a specific cryptocurrency or fiat currency
+// GetOrders gets the orders made in a specific market with a specific status
 func (c *client) GetOrders(marketID string, per int, page int, state string, minimumExchanged float64) string {
 	const method string = "GET"
 	var query = "markets/" + marketID + "/orders?per=" + strconv.Itoa(per) + "&page=" + strconv.Itoa(page) + "&state=" + state + "&minimumExchanged=" + strconv.FormatFloat(minimumExchanged, 'g', 20, 32)
