@@ -72,86 +72,6 @@ func (c *client) GetTrades(marketID string) string {
 	return execute("GET", finalURL, "", "", "", "")
 }
 
-func execute(method string, completeURL string, apikey string, signature string, Nonce string, reqPayload string) string {
-	// responseData will contain the body of the response from the server, execute(...) will return this variable as a string
-	responseData := "An error ocurred, ocurred, check the request method, only GET is allowed at the moment. Also check your apikey ,signature and nonce"
-	// httpClient	will make the http requests to the server
-	httpClient := &http.Client{}
-	// req is the request that will hold all the info
-	req, err := http.NewRequest(method, completeURL, nil)
-	if err != nil {
-		log.Fatal(("Error creating new request, submitted url was: " +
-			completeURL + "with method" + method +
-			". Error: "), err)
-	}
-
-	if method == "GET" && apikey == "" && signature == "" && Nonce == "" {
-		// The GET requests that do not require authentication will end here
-
-		// res is the respons from the server when the request is executed
-		res, err := httpClient.Do(req)
-		if err != nil {
-			log.Fatal(("Error executing new request, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
-		}
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Fatal(("Error reading response, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
-		}
-		responseData = string(body)
-
-	} else if apikey != "" && signature != "" && Nonce != "" {
-		// The POST AND GET requests that DO NEED AUTHENTICATION will end here
-		req.Header.Set("X-SBTC-SIGNATURE", signature)
-		req.Header.Set("X-SBTC-APIKEY", apikey)
-		req.Header.Set("X-SBTC-NONCE", Nonce)
-		req.Header.Set("Content-Type", "application/json")
-
-		if method == "POST" || method == "PUT" {
-			req.Body = ioutil.NopCloser(strings.NewReader(reqPayload))
-		}
-
-		res, err := httpClient.Do(req)
-		if err != nil {
-			log.Fatal(("Error executing new request, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
-		}
-		defer res.Body.Close()
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Fatal(("Error reading response, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
-		}
-		responseData = string(body)
-	}
-	return responseData
-}
-
-// HERE STARTS THE PRIVATE CALLS
-
-func signMessage(APISecret string, method string, query string, Nonce string, body string) string {
-	var stringMessage string
-
-	if body != "" {
-		stringMessage = method + " /api/v2/" + query + " " + body + " " + Nonce
-	} else {
-		stringMessage = method + " /api/v2/" + query + " " + Nonce
-	}
-
-	fmt.Println(stringMessage)
-	key := []byte(APISecret)
-	h := hmac.New(sha512.New384, key)
-	h.Write([]byte(stringMessage))
-	signature := hex.EncodeToString(h.Sum(nil))
-	return signature
-}
-
 // GetBalances get the wallet balances in all cryptocurrencies and fiat currencies
 func (c *client) GetBalances() string {
 	const method string = "GET"
@@ -272,4 +192,84 @@ func (c *client) GetWithdrawHistory(currency string) string {
 		return execute(method, finalURL, c.apiKey, signature, Nonce, "")
 	}
 	return "AUTHENTICATION REQUIRED GetWithdrawHistory"
+}
+
+// execute makes the actual request
+func execute(method string, completeURL string, apikey string, signature string, Nonce string, reqPayload string) string {
+	// responseData will contain the body of the response from the server, execute(...) will return this variable as a string
+	responseData := "An error ocurred, ocurred, check the request method, only GET is allowed at the moment. Also check your apikey ,signature and nonce"
+	// httpClient	will make the http requests to the server
+	httpClient := &http.Client{}
+	// req is the request that will hold all the info
+	req, err := http.NewRequest(method, completeURL, nil)
+	if err != nil {
+		log.Fatal(("Error creating new request, submitted url was: " +
+			completeURL + "with method" + method +
+			". Error: "), err)
+	}
+
+	if method == "GET" && apikey == "" && signature == "" && Nonce == "" {
+		// The GET requests that do not require authentication will end here
+
+		// res is the respons from the server when the request is executed
+		res, err := httpClient.Do(req)
+		if err != nil {
+			log.Fatal(("Error executing new request, submitted url was: " +
+				completeURL + "with method" + method +
+				". Error: "), err)
+		}
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Fatal(("Error reading response, submitted url was: " +
+				completeURL + "with method" + method +
+				". Error: "), err)
+		}
+		responseData = string(body)
+
+	} else if apikey != "" && signature != "" && Nonce != "" {
+		// The POST AND GET requests that DO NEED AUTHENTICATION will end here
+		req.Header.Set("X-SBTC-SIGNATURE", signature)
+		req.Header.Set("X-SBTC-APIKEY", apikey)
+		req.Header.Set("X-SBTC-NONCE", Nonce)
+		req.Header.Set("Content-Type", "application/json")
+
+		if method == "POST" || method == "PUT" {
+			req.Body = ioutil.NopCloser(strings.NewReader(reqPayload))
+		}
+
+		res, err := httpClient.Do(req)
+		if err != nil {
+			log.Fatal(("Error executing new request, submitted url was: " +
+				completeURL + "with method" + method +
+				". Error: "), err)
+		}
+		defer res.Body.Close()
+		body, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			log.Fatal(("Error reading response, submitted url was: " +
+				completeURL + "with method" + method +
+				". Error: "), err)
+		}
+		responseData = string(body)
+	}
+	return responseData
+}
+
+// signMessage signs the request for authenticaded calls
+func signMessage(APISecret string, method string, query string, Nonce string, body string) string {
+	var stringMessage string
+
+	if body != "" {
+		stringMessage = method + " /api/v2/" + query + " " + body + " " + Nonce
+	} else {
+		stringMessage = method + " /api/v2/" + query + " " + Nonce
+	}
+
+	fmt.Println(stringMessage)
+	key := []byte(APISecret)
+	h := hmac.New(sha512.New384, key)
+	h.Write([]byte(stringMessage))
+	signature := hex.EncodeToString(h.Sum(nil))
+	return signature
 }
