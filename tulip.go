@@ -18,13 +18,13 @@ import (
 
 // Client is the struct that interacts with buda server and executes the requests
 type client struct {
-	apiURL    string
-	apiKey    string
-	apiSecret string
-	// Nonce         int32
+	apiURL        string
+	apiKey        string
+	apiSecret     string
 	authenticated bool
 }
 
+// order is the struct that will be sent in the request payload as a json to create a new order
 type order struct {
 	OrderType string  `json:"type"`
 	PriceType string  `json:"price_type"`
@@ -73,7 +73,7 @@ func (c *client) GetTrades(marketID string) string {
 
 func execute(method string, completeURL string, apikey string, signature string, Nonce string, reqPayload string) string {
 	// responseData will contain the body of the response from the server, execute(...) will return this variable as a string
-	responseData := "An error ocurred, ocurred, check the request method, only GET is allowed at the moment. Also check your apikey ,signature and nonce"
+	responseData := "An error ocurred, check the request method, check your apikey ,signature and nonce"
 	// httpClient	will make the http requests to the server
 	httpClient := &http.Client{}
 	// req is the request that will hold all the info
@@ -87,7 +87,7 @@ func execute(method string, completeURL string, apikey string, signature string,
 	if method == "GET" && apikey == "" && signature == "" && Nonce == "" {
 		// The GET requests that do not require authentication will end here
 
-		// res is the respons from the server when the request is executed
+		// res is the response from the server when the request is executed
 		res, err := httpClient.Do(req)
 		if err != nil {
 			log.Fatal(("Error executing new request, submitted url was: " +
@@ -177,7 +177,7 @@ func (c *client) GetBalance(currency string) string {
 	return "AUTHENTICATION REQUIRED GetBalance"
 }
 
-// GetOrders gets the orders made in a specific market with a specific status
+// GetOrders gets your orders made in a specific market with a specific status
 func (c *client) GetOrders(marketID string, per int, page int, state string, minimumExchanged float64) string {
 	const method string = "GET"
 	var query = "markets/" + marketID + "/orders?per=" + strconv.Itoa(per) + "&page=" + strconv.Itoa(page) + "&state=" + state + "&minimumExchanged=" + strconv.FormatFloat(minimumExchanged, 'g', 20, 32)
@@ -245,7 +245,7 @@ func (c *client) GetOrder(orderID string) string {
 	return "AUTHENTICATION REQUIRED GetOrder"
 }
 
-// GetDepositHistory returns the historic deposits/withdrawls
+// GetDepositHistory returns the historic deposits
 func (c *client) GetDepositHistory(currency string) string {
 	const method string = "GET"
 	var query = "currencies/" + currency + "/deposits"
@@ -259,7 +259,7 @@ func (c *client) GetDepositHistory(currency string) string {
 	return "AUTHENTICATION REQUIRED GetDepositHistory"
 }
 
-// GetWithdrawHistory returns the historic deposits/withdrawls
+// GetWithdrawHistory returns the historic withdrawls
 func (c *client) GetWithdrawHistory(currency string) string {
 	const method string = "GET"
 	var query = "currencies/" + currency + "/withdrawals"

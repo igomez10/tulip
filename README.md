@@ -68,6 +68,7 @@ import (
 ## Public Calls
 
 ### Get Ticker
+GetTicker Returns info about a specific market
 
 ```GO
 buda.GetTicker(<marketID>)
@@ -92,6 +93,7 @@ buda.GetTicker(<marketID>)
 
 
 ### Get Markets
+GetMarkets Returns info about all markets
 ```GO
 buda.GetMarkets()
  ```
@@ -124,6 +126,7 @@ buda.GetMarkets()
  ```
 
 ### Get Order Book
+GetOrderBook is used to get current state of the market. It shows the best offers (bid, ask) and the price from the last transaction, daily volume and the price in the last 24 hours
 ```GO
 buda.GetOrderBook("btc-clp")
 ```
@@ -160,6 +163,8 @@ buda.GetOrderBook("btc-clp")
 
 ```
 ### Get Trades
+GetTrades returns a list of recent trades in a specific market
+
 ```Go
 buda.GetTrades("btc-clp")
 ```
@@ -192,8 +197,9 @@ buda.GetTrades("btc-clp")
 ## Private Calls
 #### NEEDS AN APIKEY/APISECRET
 
-### Get Balances (all of them)
-##### specific currency balance is a TODO
+### Get Balances/Balances
+  - GetBalances gets the wallet balances in all cryptocurrencies and fiat currencies
+  - GetBalance(currency) gets the wallet balance in a specific cryptocurrency or fiat currency
 
 
 ```GO
@@ -249,6 +255,8 @@ buda.GetBalances()
 
 ### Get info about all YOUR Orders
 ##### Warning: GetOrderBook(A)  !=  GetOrders(A,B,C,D,E)
+
+- GetOrders gets your orders made in a specific market with a specific status or/and minimum amount
 
 
 ```GO
@@ -307,8 +315,9 @@ buda.GetOrders("btc-cop", 300, 1, "pending", float64(0))
 ```
 
 ### Create a new order
-##### Warning: your money is at risk, be sure to understand this method
+#### Warning: your money is at risk, be sure to understand this method: http://api.surbtc.com/#nueva-orden
 
+#### PostOrder creates a new order (bid or ask) in a specific market
 
 ```GO
 buda.PostOrder(marketID string, orderType string, priceType string, limit float64, amount float64)
@@ -360,11 +369,12 @@ buda.PostOrder("btc-cop", "bid", "limit", float64(0.00001), float64(0.0001)))
 
 
 ### Cancel an order
+#### CancelOrder cancels a specified order
 
 ```GO
 buda.CancelOrder(orderID string)
 ```
-
+#### CancelOrder cancels a specified order
 ```json
 {  
    "order":{  
@@ -406,6 +416,7 @@ buda.CancelOrder(orderID string)
 
 
 ### Get info about a specific order
+####GetOrder returns the current state of a specific order
 
 ```GO
 buda.GetOrder(orderID string)
