@@ -12,7 +12,7 @@ You can make unauthenticated calls (http://api.surbtc.com/#llamadas-p-blicas)
 ##### DISCLAIMER
 
 BEWARE THIS IS OPEN SOURCE IN EARLY STAGES, I'M DOING MY BEST, FEEL FREE TO OPEN AN ISSUE / PULL REQUEST IF YOU FIND BUGS OR IF YOU WANT TO INCLUDE NEW FEATURES.
-If your pull request doesn't break anything I will happily merge it.
+If your pull request doesn't break any old code I will happily merge it.
 
 This client works with v2 of the surbtc API. It might need to change in the coming weeks with the change to Buda as the company new name.
 I assume all endpoints will need to change to something similar to buda.com/api/v2/something .
