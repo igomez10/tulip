@@ -518,7 +518,7 @@ buda.GetWithdrawHistory(currency string)
             "fiat_account":{  
                "id":1234567,
                "account_number":"000000000",
-               "account_type":"Cuenta de Ahorro",
+               "account_type":"Account description",
                "bank_id":99,
                "created_at":"2018-01-22T16:57:32.949Z",
                "currency":"COP",
