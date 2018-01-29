@@ -34,7 +34,7 @@ $ go get github.com/igomez10/tulip
 In your .go file:
 ```GO
 import (
-    tulip "github.com/igomez10/tulip"
+    "github.com/igomez10/tulip"
     "fmt"
   )
 
