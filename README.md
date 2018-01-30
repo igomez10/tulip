@@ -55,9 +55,21 @@ import (
     "fmt"
   )
 
-  buda := tulip.CreateClient(<youPublicAPIKEY> , <yourSecretPrivateKey>)
-  results := buda.GetMarkets()
-  fmt.Println(results)
+  APIKey := os.Getenv("BUDAKEY")       // you can modify this variable and hardcode your own apikey
+  APISecret := os.Getenv("BUDASECRET") // you can modify this variable and hardcode your own apisecret
+
+
+  buda := tulip.CreateClient(APIKey, APISecret)
+	results, err := (buda.GetTicker("btc-clp"))
+	if err != nil {
+		fmt.Println(err)
+	} else {
+		fmt.Println(results.Market.ID)                 // "BTC-CLP"
+		fmt.Println(results.Market.Name)               // "btc-clp"
+		fmt.Println(results.Market.BaseCurrency)       // "BTC"
+		fmt.Println(results.Market.QuoteCurrency)      // "CLP"
+		fmt.Println(results.Market.MinimumOrderAmount) // ["0.0001 BTC"]
+	}
 
 ```
 
@@ -188,7 +200,7 @@ buda.GetTrades("btc-clp")
           "7300000.0",
           "buy",
           316844
-        ],       
+        ]
       ]
     }
 }
