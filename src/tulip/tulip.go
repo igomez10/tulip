@@ -26,12 +26,6 @@ type client struct {
 }
 
 // order is the struct that will be sent in the request payload as a json to create a new order
-type order struct {
-	OrderType string  `json:"type"`
-	PriceType string  `json:"price_type"`
-	Limit     float64 `json:"limit"`
-	Amount    float64 `json:"amount"`
-}
 
 // CreateClient returns a new client
 func CreateClient(apikey string, apisecret string) *client {
@@ -238,36 +232,43 @@ func (c *client) GetOrders(marketID string, per int, page int, state string, min
 
 // PostOrder creates a new order (bid or ask) in a specific market
 func (c *client) PostOrder(marketID string, orderType string, priceType string, limit float64, amount float64) (types.OrderResponse, error) {
-	const method string = "POST"
-	var query = "markets/" + marketID + "/orders"
 	var jsonPostOrder types.OrderResponse
-	neworder := &order{OrderType: orderType, PriceType: priceType, Limit: limit, Amount: amount}
-	myOrder, err := json.Marshal(neworder)
-	if err != nil {
-		fmt.Println("THE ORDER HAS WRONG VALUES, CHECK THE API DOCUMENTATION" + marketID + " , " + orderType + ", " + priceType + ", " + strconv.FormatFloat(limit, 'g', 20, 32) + ", " + strconv.FormatFloat(amount, 'g', 20, 32))
-		return jsonPostOrder, err
-	}
-	encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(myOrder))
 	if c.authenticated == true {
+		const method string = "POST"
+		var query = "markets/" + marketID + "/orders"
+		var newOrder interface{}
+
+		if priceType == "market" {
+			newOrder = types.MarketOrder{orderType, priceType, amount}
+		} else if priceType == "limit" {
+			newOrder = types.LimitOrder{orderType, priceType, limit, amount}
+		}
+		var valueofjson = types.Describe(newOrder)
+		myOrder, err := json.Marshal(valueofjson)
+		if err != nil {
+			fmt.Println("THE ORDER HAS WRONG VALUES, CHECK THE API DOCUMENTATION" + marketID + " , " + orderType + ", " + priceType + ", " + strconv.FormatFloat(limit, 'g', 20, 32) + ", " + strconv.FormatFloat(amount, 'g', 20, 32))
+			return jsonPostOrder, err
+		}
+		encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(myOrder))
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 		finalURL := c.apiURL + "/" + query
 		signature := signMessage(c.apiSecret, method, query, Nonce, encodedRequestPayload)
 		resp := execute(method, finalURL, c.apiKey, signature, Nonce, string(myOrder))
-		err := json.Unmarshal([]byte(resp), &jsonPostOrder)
-		if err != nil {
+		err2 := json.Unmarshal([]byte(resp), &jsonPostOrder)
+		if err2 != nil {
 			return jsonPostOrder, err
 		}
 		return jsonPostOrder, nil
 	}
-	err2 := errors.New("AUTHENTICATION REQUIRED PostOrder")
-	return jsonPostOrder, err2
+	err3 := errors.New("AUTHENTICATION REQUIRED PostOrder")
+	return jsonPostOrder, err3
 }
 
 // CancelOrder cancels a specified order
 func (c *client) CancelOrder(orderID string) (types.OrderResponse, error) {
 	const method string = "PUT"
 	var query = "orders/" + orderID
-	requestPayloadString := "{" + `"state":` + `"canceling"` + "}"
+	requestPayloadString := "{ \"state\": \"canceling\" }"
 	encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(requestPayloadString))
 	var jsonCancelOrder types.OrderResponse
 	if c.authenticated == true {

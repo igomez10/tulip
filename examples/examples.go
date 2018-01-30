@@ -12,7 +12,7 @@ func main() {
 	APISecret := os.Getenv("BUDASECRET") // you can modify this variable and hardcode your own apisecret
 
 	buda := tulip.CreateClient(APIKey, APISecret)
-	results, err := (buda.GetTicker("btc-clp"))
+	results, err := buda.GetTicker("btc-clp")
 	if err != nil {
 		fmt.Println(err)
 	} else {

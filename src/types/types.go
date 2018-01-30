@@ -4,6 +4,23 @@ import "time"
 
 // Parsed with https://mholt.github.io/json-to-go/ , huge thanks to Matt Holt for this tool
 
+func Describe(i interface{}) interface{} {
+	return i
+}
+
+type LimitOrder struct {
+	OrderType string  `json:"type"`
+	PriceType string  `json:"price_type"`
+	Limit     float64 `json:"limit"`
+	Amount    float64 `json:"amount"`
+}
+
+type MarketOrder struct {
+	OrderType string  `json:"type"`
+	PriceType string  `json:"price_type"`
+	Amount    float64 `json:"amount"`
+}
+
 type Market struct {
 	ID                 string   `json:"id"`
 	Name               string   `json:"name"`

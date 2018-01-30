@@ -9,7 +9,7 @@ You can check the current surBTC (Buda) API documentation at http://api.surbtc.c
 NOTE: You need a developer account in order to make full use of this client.
 You can make unauthenticated calls (http://api.surbtc.com/#llamadas-p-blicas)
 
-##### DISCLAIMER
+##### DISCLAIMER ⚠️
 
 BEWARE THIS IS OPEN SOURCE IN EARLY STAGES, I'M DOING MY BEST, FEEL FREE TO OPEN AN ISSUE / PULL REQUEST IF YOU FIND BUGS OR IF YOU WANT TO INCLUDE NEW FEATURES.
 If your pull request doesn't break any old code I will happily merge it.
@@ -19,13 +19,13 @@ I assume all endpoints will need to change to something similar to buda.com/api/
 In the meantime, I'm testing it  with the latest API
 
 
-### Available Endpoints
-- #### Public
+### Available Methods ✅
+- #### Public 🔓
   - Get markets info `GetMarkets()`
   - Get ticker info `GetTicker()`
   - Get all available orders for a market `GetOrderBook()`
   - Get info about recent trades `GetTrades()`
-- #### Private (Requires APIkey)
+- #### Private (Requires APIkey) 🔑
   - Get your current balance `GetBalances()`
   - Get your orders `GetOrders()`
   - Crate a new order (bid or ask) `PostOrder()`
@@ -35,12 +35,13 @@ In the meantime, I'm testing it  with the latest API
   - Get historic info about withdrawals `GetWithdrawHistory()`
 
 
-#### TODO Endpoints
+#### TODO 👨🏻‍💻
 
   - Do Deposits and Withdrawals
-  - Create market-price orders (only limit-pricing available RN)
+  - Do string interpolation for queries instead of appending strings together
+  - ?? Make a suggestion
 
-## Get it working
+## Get it working 🦄
 
 In your terminal:
 ```sh
@@ -75,7 +76,7 @@ import (
 
 
 
-# Documentation
+# Documentation 📄
 
 ## Public Calls
 
@@ -330,6 +331,8 @@ buda.GetOrders("btc-cop", 300, 1, "pending", float64(0))
 #### Warning: your money is at risk, be sure to understand this method: http://api.surbtc.com/#nueva-orden
 
 #### PostOrder creates a new order (bid or ask) in a specific market
+
+ IMPORTANT: You can either crete a Limit of Market order specifying it on the _priceType_ parameter as "limit" or "market". Therefore, the parameter _limit_ is only read in the first case but it is necessary to make the call. In order to post a Market order, submit the limit as float(0) or float().
 
 ```GO
 buda.PostOrder(marketID string, orderType string, priceType string, limit float64, amount float64)
