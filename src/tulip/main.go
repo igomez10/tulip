@@ -14,7 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"types"
+	"tulip/types"
 )
 
 // Client is the struct that interacts with buda server and executes the requests
