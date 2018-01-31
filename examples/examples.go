@@ -3,7 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
-	"tulip"
+
+	"github.com/igomez10/tulip"
 )
 
 func main() {

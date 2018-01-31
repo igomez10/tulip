@@ -51,17 +51,22 @@ $ go get github.com/igomez10/tulip
 
 In your .go file:
 ```GO
+package main
+
 import (
-    "github.com/igomez10/tulip"
-    "fmt"
-  )
+	"fmt"
+	"os"
 
-  APIKey := os.Getenv("BUDAKEY")       // you can modify this variable and hardcode your own apikey
-  APISecret := os.Getenv("BUDASECRET") // you can modify this variable and hardcode your own apisecret
+	"github.com/igomez10/tulip"
+)
 
+func main() {
 
-  buda := tulip.CreateClient(APIKey, APISecret)
-	results, err := (buda.GetTicker("btc-clp"))
+	APIKey := os.Getenv("BUDAKEY")       // you can modify this variable and hardocde your own apikey
+	APISecret := os.Getenv("BUDASECRET") // you can modify this variable and hardcode your own apisecret
+
+	buda := tulip.CreateClient(APIKey, APISecret)
+	results, err := buda.GetTicker("btc-clp")
 	if err != nil {
 		fmt.Println(err)
 	} else {
@@ -71,7 +76,6 @@ import (
 		fmt.Println(results.Market.QuoteCurrency)      // "CLP"
 		fmt.Println(results.Market.MinimumOrderAmount) // ["0.0001 BTC"]
 	}
-
 ```
 
 
