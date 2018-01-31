@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-	"tulip/types"
 )
 
 // Client is the struct that interacts with buda server and executes the requests
@@ -41,10 +40,10 @@ func CreateClient(apikey string, apisecret string) *client {
 }
 
 // GetMarkets Returns info about all markets
-func (c *client) GetMarkets() (types.MarketsResponse, error) {
+func (c *client) GetMarkets() (MarketsResponse, error) {
 	finalURL := c.apiURL + "/markets"
 	resp := execute("GET", finalURL, "", "", "", "")
-	var jsonMarketsResponse types.MarketsResponse
+	var jsonMarketsResponse MarketsResponse
 	err := json.Unmarshal([]byte(resp), &jsonMarketsResponse)
 	if err != nil {
 		return jsonMarketsResponse, err
@@ -53,10 +52,10 @@ func (c *client) GetMarkets() (types.MarketsResponse, error) {
 }
 
 // GetTicker Returns info about a specific market
-func (c *client) GetTicker(ticker string) (types.MarketResponse, error) {
+func (c *client) GetTicker(ticker string) (MarketResponse, error) {
 	finalURL := c.apiURL + "/markets/" + ticker
 	resp := execute("GET", finalURL, "", "", "", "")
-	var jsonMarketResponse types.MarketResponse
+	var jsonMarketResponse MarketResponse
 	err := json.Unmarshal([]byte(resp), &jsonMarketResponse)
 	if err != nil {
 		return jsonMarketResponse, err
@@ -67,10 +66,10 @@ func (c *client) GetTicker(ticker string) (types.MarketResponse, error) {
 //GetOrderBook is used to get current state of the market.
 // It shows the best offers (bid, ask) and the price from the
 // last transaction, daily volume and the price in the last 24 hours
-func (c *client) GetOrderBook(marketID string) (types.OrderBook, error) {
+func (c *client) GetOrderBook(marketID string) (OrderBook, error) {
 	finalURL := c.apiURL + "/markets/" + marketID + "/order_book"
 	resp := execute("GET", finalURL, "", "", "", "")
-	var orderBook types.OrderBook
+	var orderBook OrderBook
 	err := json.Unmarshal([]byte(resp), &orderBook)
 	if err != nil {
 		return orderBook, err
@@ -79,10 +78,10 @@ func (c *client) GetOrderBook(marketID string) (types.OrderBook, error) {
 }
 
 //GetTrades returns a list of recent trades
-func (c *client) GetTrades(marketID string) (types.TradesResponse, error) {
+func (c *client) GetTrades(marketID string) (TradesResponse, error) {
 	finalURL := c.apiURL + "/markets/" + marketID + "/trades"
 	resp := execute("GET", finalURL, "", "", "", "")
-	var jsonTrades types.TradesResponse
+	var jsonTrades TradesResponse
 	err := json.Unmarshal([]byte(resp), &jsonTrades)
 	if err != nil {
 		return jsonTrades, err
@@ -171,10 +170,10 @@ func signMessage(APISecret string, method string, query string, Nonce string, bo
 }
 
 // GetBalances get the wallet balances in all cryptocurrencies and fiat currencies
-func (c *client) GetBalances() (types.BalancesResponse, error) {
+func (c *client) GetBalances() (BalancesResponse, error) {
 	const method string = "GET"
 	const query string = "balances"
-	var jsonBalances types.BalancesResponse
+	var jsonBalances BalancesResponse
 	if c.authenticated == true {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 		finalURL := c.apiURL + "/" + query
@@ -191,10 +190,10 @@ func (c *client) GetBalances() (types.BalancesResponse, error) {
 }
 
 // GetBalance get the wallet balance in a specific cryptocurrency or fiat currency
-func (c *client) GetBalance(currency string) (types.BalanceResponse, error) {
+func (c *client) GetBalance(currency string) (BalanceResponse, error) {
 	const method string = "GET"
 	var query = "balances/" + currency
-	var jsonBalance types.BalanceResponse
+	var jsonBalance BalanceResponse
 	if c.authenticated == true {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 		finalURL := c.apiURL + "/" + query
@@ -211,10 +210,10 @@ func (c *client) GetBalance(currency string) (types.BalanceResponse, error) {
 }
 
 // GetOrders gets your orders made in a specific market with a specific status
-func (c *client) GetOrders(marketID string, per int, page int, state string, minimumExchanged float64) (types.MyOrdersResponse, error) {
+func (c *client) GetOrders(marketID string, per int, page int, state string, minimumExchanged float64) (MyOrdersResponse, error) {
 	const method string = "GET"
 	var query = "markets/" + marketID + "/orders?per=" + strconv.Itoa(per) + "&page=" + strconv.Itoa(page) + "&state=" + state + "&minimumExchanged=" + strconv.FormatFloat(minimumExchanged, 'g', 20, 32)
-	var jsonOrders types.MyOrdersResponse
+	var jsonOrders MyOrdersResponse
 	if c.authenticated == true {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 		finalURL := c.apiURL + "/" + query
@@ -231,19 +230,19 @@ func (c *client) GetOrders(marketID string, per int, page int, state string, min
 }
 
 // PostOrder creates a new order (bid or ask) in a specific market
-func (c *client) PostOrder(marketID string, orderType string, priceType string, limit float64, amount float64) (types.OrderResponse, error) {
-	var jsonPostOrder types.OrderResponse
+func (c *client) PostOrder(marketID string, orderType string, priceType string, limit float64, amount float64) (OrderResponse, error) {
+	var jsonPostOrder OrderResponse
 	if c.authenticated == true {
 		const method string = "POST"
 		var query = "markets/" + marketID + "/orders"
 		var newOrder interface{}
 
 		if priceType == "market" {
-			newOrder = types.MarketOrder{orderType, priceType, amount}
+			newOrder = MarketOrder{orderType, priceType, amount}
 		} else if priceType == "limit" {
-			newOrder = types.LimitOrder{orderType, priceType, limit, amount}
+			newOrder = LimitOrder{orderType, priceType, limit, amount}
 		}
-		var valueofjson = types.Describe(newOrder)
+		var valueofjson = Describe(newOrder)
 		myOrder, err := json.Marshal(valueofjson)
 		if err != nil {
 			fmt.Println("THE ORDER HAS WRONG VALUES, CHECK THE API DOCUMENTATION" + marketID + " , " + orderType + ", " + priceType + ", " + strconv.FormatFloat(limit, 'g', 20, 32) + ", " + strconv.FormatFloat(amount, 'g', 20, 32))
@@ -265,12 +264,12 @@ func (c *client) PostOrder(marketID string, orderType string, priceType string, 
 }
 
 // CancelOrder cancels a specified order
-func (c *client) CancelOrder(orderID string) (types.OrderResponse, error) {
+func (c *client) CancelOrder(orderID string) (OrderResponse, error) {
 	const method string = "PUT"
 	var query = "orders/" + orderID
 	requestPayloadString := "{ \"state\": \"canceling\" }"
 	encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(requestPayloadString))
-	var jsonCancelOrder types.OrderResponse
+	var jsonCancelOrder OrderResponse
 	if c.authenticated == true {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 		finalURL := c.apiURL + "/" + query
@@ -287,10 +286,10 @@ func (c *client) CancelOrder(orderID string) (types.OrderResponse, error) {
 }
 
 // GetOrder returns the current state of the order
-func (c *client) GetOrder(orderID string) (types.OrderResponse, error) {
+func (c *client) GetOrder(orderID string) (OrderResponse, error) {
 	const method string = "GET"
 	var query = "orders/" + orderID
-	var jsonOrder types.OrderResponse
+	var jsonOrder OrderResponse
 	if c.authenticated == true {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 		finalURL := c.apiURL + "/" + query
@@ -309,10 +308,10 @@ func (c *client) GetOrder(orderID string) (types.OrderResponse, error) {
 }
 
 // GetDepositHistory returns the historic deposits
-func (c *client) GetDepositHistory(currency string) (types.HistoricDespositsResponse, error) {
+func (c *client) GetDepositHistory(currency string) (HistoricDespositsResponse, error) {
 	const method string = "GET"
 	var query = "currencies/" + currency + "/deposits"
-	var jsonHistoricDeposit types.HistoricDespositsResponse
+	var jsonHistoricDeposit HistoricDespositsResponse
 	if c.authenticated == true {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 		finalURL := c.apiURL + "/" + query
@@ -330,10 +329,10 @@ func (c *client) GetDepositHistory(currency string) (types.HistoricDespositsResp
 }
 
 // GetWithdrawHistory returns the historic withdrawls
-func (c *client) GetWithdrawHistory(currency string) (types.HistoricWithdrawResponse, error) {
+func (c *client) GetWithdrawHistory(currency string) (HistoricWithdrawResponse, error) {
 	const method string = "GET"
 	var query = "currencies/" + currency + "/withdrawals"
-	var jsonHistoricWithdraw types.HistoricWithdrawResponse
+	var jsonHistoricWithdraw HistoricWithdrawResponse
 
 	if c.authenticated == true {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)

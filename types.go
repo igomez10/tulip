@@ -1,4 +1,4 @@
-package types
+package tulip
 
 import "time"
 
