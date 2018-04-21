@@ -2,21 +2,12 @@
 
 
 
-An open source API for surBTC (Buda) written in Go. An alternative for current apis written in Java or Python.
+An open source API for Buda written in Go.
 
-You can check the current surBTC (Buda) API documentation at http://api.surbtc.com
+You can check the current Buda API documentation at http://api.buda.com
 
 NOTE: You need a developer account in order to make full use of this client.
-You can make unauthenticated calls (http://api.surbtc.com/#llamadas-p-blicas)
-
-##### DISCLAIMER ⚠️
-
-BEWARE THIS IS OPEN SOURCE IN EARLY STAGES, I'M DOING MY BEST, FEEL FREE TO OPEN AN ISSUE / PULL REQUEST IF YOU FIND BUGS OR IF YOU WANT TO INCLUDE NEW FEATURES.
-If your pull request doesn't break any old code I will happily merge it.
-
-This client works with v2 of the surbtc API. It might need to change in the coming weeks with the change to Buda as the company new name.
-I assume all endpoints will need to change to something similar to buda.com/api/v2/something .
-In the meantime, I'm testing it  with the latest API
+You can make unauthenticated calls (http://api.buda.com/#llamadas-p-blicas)
 
 
 ### Available Methods ✅
@@ -332,7 +323,7 @@ buda.GetOrders("btc-cop", 300, 1, "pending", float64(0))
 ```
 
 ### Create a new order
-#### Warning: your money is at risk, be sure to understand this method: http://api.surbtc.com/#nueva-orden
+#### Warning: Be sure to understand this method: http://api.buda.com/#nueva-orden
 
 #### PostOrder creates a new order (bid or ask) in a specific market
 
@@ -597,3 +588,11 @@ buda.GetWithdrawHistory(currency string)
    }
 }
 ```
+
+
+##### CONTRIBUTION ⚠️
+
+FEEL FREE TO OPEN AN ISSUE / PULL REQUEST IF YOU FIND BUGS OR IF YOU WANT TO INCLUDE NEW FEATURES.
+If your pull request doesn't break any old code I will happily merge it.
+
+This client works with v2 of the Buda API.

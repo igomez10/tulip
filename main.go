@@ -32,7 +32,7 @@ func CreateClient(apikey string, apisecret string) *client {
 	if apikey != "" && apisecret != "" {
 		newClient.authenticated = true
 	}
-	newClient.apiURL = "https://www.surbtc.com/api/v2"
+	newClient.apiURL = "https://www.buda.com/api/v2"
 	newClient.apiKey = apikey
 	newClient.apiSecret = apisecret
 
