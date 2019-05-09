@@ -2,7 +2,7 @@
 
 
 
-An open source API for Buda written in Go.
+An open source API client for Buda written in Go.
 
 You can check the current Buda API documentation at http://api.buda.com
 
