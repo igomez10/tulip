@@ -16,115 +16,128 @@ import (
 	"time"
 )
 
+// APIURL is the url used to call Buda services
+const APIURL = "https://www.buda.com/api/v2"
+
 // Client is the struct that interacts with buda server and executes the requests
-type client struct {
-	apiURL        string
-	apiKey        string
-	apiSecret     string
-	authenticated bool
+type Client struct {
+	APIURL        string
+	APIKey        string
+	APISecret     string
+	Authenticated bool
 }
 
-// order is the struct that will be sent in the request payload as a json to create a new order
-
-// CreateClient returns a new client
-func CreateClient(apikey string, apisecret string) *client {
-	var newClient client
-	if apikey != "" && apisecret != "" {
-		newClient.authenticated = true
+// NewClient returns a new Client
+func NewClient(key string, apisecret string) *Client {
+	var newClient Client
+	if key != "" && apisecret != "" {
+		newClient.Authenticated = true
 	}
-	newClient.apiURL = "https://www.buda.com/api/v2"
-	newClient.apiKey = apikey
-	newClient.apiSecret = apisecret
+
+	newClient.APIURL = APIURL
+	newClient.APIKey = key
+	newClient.APISecret = apisecret
 
 	return &newClient
 }
 
 // GetMarkets Returns info about all markets
-func (c *client) GetMarkets() (MarketsResponse, error) {
-	finalURL := c.apiURL + "/markets"
+func (c *Client) GetMarkets() (MarketsResponse, error) {
+	finalURL := fmt.Sprintf("%s/markets", c.APIURL)
+
 	resp := execute("GET", finalURL, "", "", "", "")
+
 	var jsonMarketsResponse MarketsResponse
 	err := json.Unmarshal([]byte(resp), &jsonMarketsResponse)
 	if err != nil {
 		return jsonMarketsResponse, err
 	}
+
 	return jsonMarketsResponse, nil
 }
 
-// GetTicker Returns info about a specific market
-func (c *client) GetTicker(ticker string) (MarketResponse, error) {
-	finalURL := c.apiURL + "/markets/" + ticker
+// GetTicker Returns the exchange rate for a given ticker
+func (c *Client) GetTicker(ticker string) (MarketResponse, error) {
+	finalURL := fmt.Sprintf("%s/markets/%s", c.APIURL, ticker)
+
 	resp := execute("GET", finalURL, "", "", "", "")
+
 	var jsonMarketResponse MarketResponse
 	err := json.Unmarshal([]byte(resp), &jsonMarketResponse)
 	if err != nil {
 		return jsonMarketResponse, err
 	}
+
 	return jsonMarketResponse, nil
 }
 
 //GetOrderBook is used to get current state of the market.
 // It shows the best offers (bid, ask) and the price from the
 // last transaction, daily volume and the price in the last 24 hours
-func (c *client) GetOrderBook(marketID string) (OrderBook, error) {
-	finalURL := c.apiURL + "/markets/" + marketID + "/order_book"
+func (c *Client) GetOrderBook(marketID string) (OrderBook, error) {
+	finalURL := fmt.Sprintf("%s/markets/%s/order_book", c.APIURL, marketID)
 	resp := execute("GET", finalURL, "", "", "", "")
+
 	var orderBook OrderBook
 	err := json.Unmarshal([]byte(resp), &orderBook)
 	if err != nil {
 		return orderBook, err
 	}
+
 	return orderBook, nil
 }
 
-//GetTrades returns a list of recent trades
-func (c *client) GetTrades(marketID string) (TradesResponse, error) {
-	finalURL := c.apiURL + "/markets/" + marketID + "/trades"
+//GetTrades returns a list of recent trades in a given market
+func (c *Client) GetTrades(marketID string) (TradesResponse, error) {
+	finalURL := fmt.Sprintf("%s/markets/%s/trades", c.APIURL, marketID)
 	resp := execute("GET", finalURL, "", "", "", "")
 	var jsonTrades TradesResponse
+
 	err := json.Unmarshal([]byte(resp), &jsonTrades)
 	if err != nil {
 		return jsonTrades, err
 	}
+
 	return jsonTrades, nil
 }
 
-func execute(method string, completeURL string, apikey string, signature string, Nonce string, reqPayload string) string {
-	// responseData will contain the body of the response from the server, execute(...) will return this variable as a string
-	responseData := "An error ocurred, check the request method, check your apikey ,signature and nonce"
+func execute(method, completeURL, key, signature, Nonce, reqPayload string) string {
+	// responseData will contain the body of the response
+	// from the server, execute(...) will return this variable as a string
+	responseData := "Error - check the request method, check your apikey ,signature and nonce"
+
 	// httpClient	will make the http requests to the server
 	httpClient := &http.Client{}
-	// req is the request that will hold all the info
+
+	// req is the request that will contain all the info
 	req, err := http.NewRequest(method, completeURL, nil)
 	if err != nil {
-		log.Fatal(("Error creating new request, submitted url was: " +
-			completeURL + "with method" + method +
-			". Error: "), err)
+		log.Fatalf("Error creating new request: \n %+v ", err)
 	}
 
-	if method == "GET" && apikey == "" && signature == "" && Nonce == "" {
+	if method == "GET" && key == "" && signature == "" && Nonce == "" {
 		// The GET requests that do not require authentication will end here
 
 		// res is the response from the server when the request is executed
 		res, err := httpClient.Do(req)
 		if err != nil {
-			log.Fatal(("Error executing new request, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
+			// TODO return error instead of fatal
+			log.Fatalf("Error executing new request \n %+v", err)
 		}
+
 		defer res.Body.Close()
+
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			log.Fatal(("Error reading response, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
+			log.Fatalf("Error reading response \n %+v", err)
 		}
+
 		responseData = string(body)
 
-	} else if apikey != "" && signature != "" && Nonce != "" {
+	} else if key != "" && signature != "" && Nonce != "" {
 		// The POST AND GET requests that DO NEED AUTHENTICATION will end here
 		req.Header.Set("X-SBTC-SIGNATURE", signature)
-		req.Header.Set("X-SBTC-APIKEY", apikey)
+		req.Header.Set("X-SBTC-APIKEY", key)
 		req.Header.Set("X-SBTC-NONCE", Nonce)
 		req.Header.Set("Content-Type", "application/json")
 
@@ -134,107 +147,127 @@ func execute(method string, completeURL string, apikey string, signature string,
 
 		res, err := httpClient.Do(req)
 		if err != nil {
-			log.Fatal(("Error executing new request, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
+			log.Fatalf("Error executing new request \n %s", err)
 		}
+
 		defer res.Body.Close()
+
 		body, err := ioutil.ReadAll(res.Body)
 		if err != nil {
-			log.Fatal(("Error reading response, submitted url was: " +
-				completeURL + "with method" + method +
-				". Error: "), err)
+			log.Fatalf("Error reading response \n %+v", err)
 		}
+
 		responseData = string(body)
 	}
+
 	return responseData
 }
 
 // HERE STARTS THE PRIVATE CALLS
 
-func signMessage(APISecret string, method string, query string, Nonce string, body string) string {
+func signMessage(APISecret, method, query, Nonce, body string) string {
 	var stringMessage string
 
 	if body != "" {
-		stringMessage = method + " /api/v2/" + query + " " + body + " " + Nonce
+		stringMessage = fmt.Sprintf("%s/api/v2/%s/%s/%s", method, query, body, Nonce)
 	} else {
-		stringMessage = method + " /api/v2/" + query + " " + Nonce
+		stringMessage = fmt.Sprintf("%s/api/v2/%s/%s", method, query, Nonce)
 	}
 
-	fmt.Println(stringMessage)
 	key := []byte(APISecret)
 	h := hmac.New(sha512.New384, key)
 	h.Write([]byte(stringMessage))
 	signature := hex.EncodeToString(h.Sum(nil))
+
 	return signature
 }
 
 // GetBalances get the wallet balances in all cryptocurrencies and fiat currencies
-func (c *client) GetBalances() (BalancesResponse, error) {
-	const method string = "GET"
-	const query string = "balances"
+func (c *Client) GetBalances() (BalancesResponse, error) {
 	var jsonBalances BalancesResponse
-	if c.authenticated == true {
+	method := "GET"
+	query := "balances"
+
+	if c.Authenticated {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.apiURL + "/" + query
-		signature := signMessage(c.apiSecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.apiKey, signature, Nonce, "")
+
+		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+		signature := signMessage(c.APISecret, method, query, Nonce, "")
+
+		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
+
 		err := json.Unmarshal([]byte(resp), &jsonBalances)
 		if err != nil {
 			return jsonBalances, err
 		}
+
 		return jsonBalances, nil
 	}
+
 	err := errors.New("Authentication Required GetBalances")
 	return jsonBalances, err
 }
 
 // GetBalance get the wallet balance in a specific cryptocurrency or fiat currency
-func (c *client) GetBalance(currency string) (BalanceResponse, error) {
-	const method string = "GET"
-	var query = "balances/" + currency
+func (c *Client) GetBalance(currency string) (BalanceResponse, error) {
 	var jsonBalance BalanceResponse
-	if c.authenticated == true {
+	method := "GET"
+	query := fmt.Sprintf("balances/%s", currency)
+
+	if c.Authenticated {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.apiURL + "/" + query
-		signature := signMessage(c.apiSecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.apiKey, signature, Nonce, "")
+
+		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+		signature := signMessage(c.APISecret, method, query, Nonce, "")
+
+		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
+
 		err := json.Unmarshal([]byte(resp), &jsonBalance)
 		if err != nil {
 			return jsonBalance, err
 		}
+
 		return jsonBalance, nil
 	}
+
 	err := errors.New("Authentication Required GetBalance")
 	return jsonBalance, err
 }
 
 // GetOrders gets your orders made in a specific market with a specific status
-func (c *client) GetOrders(marketID string, per int, page int, state string, minimumExchanged float64) (MyOrdersResponse, error) {
-	const method string = "GET"
-	var query = "markets/" + marketID + "/orders?per=" + strconv.Itoa(per) + "&page=" + strconv.Itoa(page) + "&state=" + state + "&minimumExchanged=" + strconv.FormatFloat(minimumExchanged, 'g', 20, 32)
+func (c *Client) GetOrders(marketID string, per, page int, state string, minimumExchanged float64) (MyOrdersResponse, error) {
 	var jsonOrders MyOrdersResponse
-	if c.authenticated == true {
+	const method string = "GET"
+
+	baseQuery := "markets/%s/orders?per=%d&page=%d&state=%s%minimumExchanged=%f"
+	query := fmt.Sprintf(baseQuery, marketID, per, page, state, minimumExchanged)
+
+	if c.Authenticated {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.apiURL + "/" + query
-		signature := signMessage(c.apiSecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.apiKey, signature, Nonce, "")
+		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+		signature := signMessage(c.APISecret, method, query, Nonce, "")
+
+		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
+
 		err := json.Unmarshal([]byte(resp), &jsonOrders)
 		if err != nil {
 			return jsonOrders, err
 		}
+
 		return jsonOrders, nil
 	}
+
 	err := errors.New("Authentication Required GetOrders")
 	return jsonOrders, err
 }
 
 // PostOrder creates a new order (bid or ask) in a specific market
-func (c *client) PostOrder(marketID string, orderType string, priceType string, limit float64, amount float64) (OrderResponse, error) {
+func (c *Client) PostOrder(marketID, orderType, priceType string, limit, amount float64) (OrderResponse, error) {
 	var jsonPostOrder OrderResponse
-	if c.authenticated == true {
-		const method string = "POST"
-		var query = "markets/" + marketID + "/orders"
+
+	if c.Authenticated {
+		method := "POST"
+		query := fmt.Sprintf("markets/%s/orders", marketID)
 		var newOrder interface{}
 
 		if priceType == "market" {
@@ -242,110 +275,132 @@ func (c *client) PostOrder(marketID string, orderType string, priceType string, 
 		} else if priceType == "limit" {
 			newOrder = LimitOrder{orderType, priceType, limit, amount}
 		}
-		var valueofjson = Describe(newOrder)
-		myOrder, err := json.Marshal(valueofjson)
+
+		myOrder, err := json.Marshal(newOrder)
 		if err != nil {
-			fmt.Println("THE ORDER HAS WRONG VALUES, CHECK THE API DOCUMENTATION" + marketID + " , " + orderType + ", " + priceType + ", " + strconv.FormatFloat(limit, 'g', 20, 32) + ", " + strconv.FormatFloat(amount, 'g', 20, 32))
+			fmt.Printf("Unexpected error marshaling order values, check API docs \n %+v", err)
 			return jsonPostOrder, err
 		}
+
 		encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(myOrder))
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.apiURL + "/" + query
-		signature := signMessage(c.apiSecret, method, query, Nonce, encodedRequestPayload)
-		resp := execute(method, finalURL, c.apiKey, signature, Nonce, string(myOrder))
-		err2 := json.Unmarshal([]byte(resp), &jsonPostOrder)
-		if err2 != nil {
+
+		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+		signature := signMessage(c.APISecret, method, query, Nonce, encodedRequestPayload)
+
+		resp := execute(method, finalURL, c.APIKey, signature, Nonce, string(myOrder))
+
+		err = json.Unmarshal([]byte(resp), &jsonPostOrder)
+		if err != nil {
+			err := fmt.Errorf("Error unmarshaling response from API, check docs\n %+v", err)
 			return jsonPostOrder, err
 		}
+
 		return jsonPostOrder, nil
 	}
-	err3 := errors.New("AUTHENTICATION REQUIRED PostOrder")
-	return jsonPostOrder, err3
+
+	err := errors.New("AUTHENTICATION REQUIRED PostOrder")
+	return jsonPostOrder, err
 }
 
 // CancelOrder cancels a specified order
-func (c *client) CancelOrder(orderID string) (OrderResponse, error) {
-	const method string = "PUT"
-	var query = "orders/" + orderID
-	requestPayloadString := "{ \"state\": \"canceling\" }"
-	encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(requestPayloadString))
+func (c *Client) CancelOrder(orderID string) (OrderResponse, error) {
 	var jsonCancelOrder OrderResponse
-	if c.authenticated == true {
+	method := "PUT"
+	query := fmt.Sprintf("orders/%s", orderID)
+
+	if c.Authenticated {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.apiURL + "/" + query
-		signature := signMessage(c.apiSecret, method, query, Nonce, encodedRequestPayload)
-		resp := execute(method, finalURL, c.apiKey, signature, Nonce, requestPayloadString)
+		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+		requestPayloadString := `{ "state": "canceling" }`
+		encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(requestPayloadString))
+
+		signature := signMessage(c.APISecret, method, query, Nonce, encodedRequestPayload)
+		resp := execute(method, finalURL, c.APIKey, signature, Nonce, requestPayloadString)
+
 		err := json.Unmarshal([]byte(resp), &jsonCancelOrder)
 		if err != nil {
 			return jsonCancelOrder, err
 		}
+
 		return jsonCancelOrder, nil
 	}
-	err2 := errors.New("AUTHENTICATION REQUIRED CancelOrder")
-	return jsonCancelOrder, err2
+
+	err := errors.New("AUTHENTICATION REQUIRED CancelOrder")
+	return jsonCancelOrder, err
 }
 
 // GetOrder returns the current state of the order
-func (c *client) GetOrder(orderID string) (OrderResponse, error) {
-	const method string = "GET"
-	var query = "orders/" + orderID
+func (c *Client) GetOrder(orderID string) (OrderResponse, error) {
 	var jsonOrder OrderResponse
-	if c.authenticated == true {
+	method := "GET"
+	query := fmt.Sprintf("orders/%s", orderID)
+
+	if c.Authenticated {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.apiURL + "/" + query
-		fmt.Println("finalurl " + finalURL)
-		signature := signMessage(c.apiSecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.apiKey, signature, Nonce, "")
+		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+
+		signature := signMessage(c.APISecret, method, query, Nonce, "")
+		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
+
 		err := json.Unmarshal([]byte(resp), &jsonOrder)
 		if err != nil {
 			return jsonOrder, err
 		}
+
 		return jsonOrder, nil
 	}
-	err2 := errors.New("AUTHENTICATION REQUIRED GetOrder")
-	return jsonOrder, err2
 
+	err := errors.New("AUTHENTICATION REQUIRED GetOrder")
+	return jsonOrder, err
 }
 
 // GetDepositHistory returns the historic deposits
-func (c *client) GetDepositHistory(currency string) (HistoricDespositsResponse, error) {
-	const method string = "GET"
-	var query = "currencies/" + currency + "/deposits"
+func (c *Client) GetDepositHistory(currency string) (HistoricDespositsResponse, error) {
 	var jsonHistoricDeposit HistoricDespositsResponse
-	if c.authenticated == true {
+	method := "GET"
+	query := fmt.Sprintf("currencies/%s/deposits", currency)
+
+	if c.Authenticated {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.apiURL + "/" + query
-		fmt.Println("finalurl " + finalURL)
-		signature := signMessage(c.apiSecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.apiKey, signature, Nonce, "")
+		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+
+		signature := signMessage(c.APISecret, method, query, Nonce, "")
+		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
+
 		err := json.Unmarshal([]byte(resp), &jsonHistoricDeposit)
 		if err != nil {
 			return jsonHistoricDeposit, err
 		}
+
 		return jsonHistoricDeposit, nil
 	}
-	err2 := errors.New("AUTHENTICATION REQUIRED GetDepositHistory")
-	return jsonHistoricDeposit, err2
+
+	err := errors.New("AUTHENTICATION REQUIRED GetDepositHistory")
+	return jsonHistoricDeposit, err
 }
 
 // GetWithdrawHistory returns the historic withdrawls
-func (c *client) GetWithdrawHistory(currency string) (HistoricWithdrawResponse, error) {
-	const method string = "GET"
-	var query = "currencies/" + currency + "/withdrawals"
+func (c *Client) GetWithdrawHistory(currency string) (HistoricWithdrawResponse, error) {
 	var jsonHistoricWithdraw HistoricWithdrawResponse
+	method := "GET"
+	query := fmt.Sprintf("currencies/%s/withdrawals", currency)
 
-	if c.authenticated == true {
+	if c.Authenticated {
 		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := c.apiURL + "/" + query
-		fmt.Println("finalurl " + finalURL)
-		signature := signMessage(c.apiSecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.apiKey, signature, Nonce, "")
+		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+
+		signature := signMessage(c.APISecret, method, query, Nonce, "")
+		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
+
 		err := json.Unmarshal([]byte(resp), &jsonHistoricWithdraw)
 		if err != nil {
 			return jsonHistoricWithdraw, err
 		}
+
 		return jsonHistoricWithdraw, nil
 	}
-	err2 := errors.New("AUTHENTICATION REQUIRED GetWithdrawHistory")
-	return jsonHistoricWithdraw, err2
+
+	err := errors.New("AUTHENTICATION REQUIRED GetWithdrawHistory")
+	return jsonHistoricWithdraw, err
 }
