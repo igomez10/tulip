@@ -7,11 +7,11 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -49,7 +49,7 @@ func getNonce() string {
 
 // GetMarkets Returns info about all markets
 func (c *Client) GetMarkets() (MarketsResponse, error) {
-	u := fmt.Sprintf("%s/markets", c.APIURL)
+	u := path.Join(c.APIURL, "markets")
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return MarketsResponse{}, err
@@ -67,7 +67,7 @@ func (c *Client) GetMarkets() (MarketsResponse, error) {
 
 // GetTicker Returns the exchange rate for a given ticker
 func (c *Client) GetTicker(ticker string) (MarketResponse, error) {
-	u := fmt.Sprintf("%s/markets/%s", c.APIURL, ticker)
+	u := path.Join(c.APIURL, "markets", ticker)
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return MarketResponse{}, err
@@ -87,7 +87,7 @@ func (c *Client) GetTicker(ticker string) (MarketResponse, error) {
 // It shows the best offers (bid, ask) and the price from the
 // last transaction, daily volume and the price in the last 24 hours
 func (c *Client) GetOrderBook(marketID string) (OrderBook, error) {
-	u := fmt.Sprintf("%s/markets/%s/order_book", c.APIURL, marketID)
+	u := path.Join(c.APIURL, "markets", marketID, "order_book")
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return OrderBook{}, err
@@ -105,7 +105,7 @@ func (c *Client) GetOrderBook(marketID string) (OrderBook, error) {
 
 //GetTrades returns a list of recent trades in a given market
 func (c *Client) GetTrades(marketID string) (TradesResponse, error) {
-	u := fmt.Sprintf("%s/markets/%s/trades", c.APIURL, marketID)
+	u := path.Join(c.APIURL, "markets", marketID, "trades")
 	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return TradesResponse{}, err
@@ -249,121 +249,90 @@ func signMessage(APISecret, method, query, Nonce, body string) string {
 
 // GetBalances get the wallet balances in all cryptocurrencies and fiat currencies
 func (c *Client) GetBalances() (BalanceResponse, error) {
-	u := fmt.Sprintf("%s/balances", c.APIURL)
-	req, err := http.NewRequest("GET", u, nil)
-	res, err := c.execute(req)
-	if err != nil {
-		return BalanceResponse{}, err
-	}
-
-	var jsonBalances BalanceResponse
-	err = json.Unmarshal([]byte(res), &jsonBalances)
-	if err != nil {
-		return jsonBalances, err
-	}
-
-	return jsonBalances, err
+	return c.GetBalance("")
 }
 
 // GetBalance get the wallet balance in a specific cryptocurrency or fiat currency
 func (c *Client) GetBalance(currency string) (BalanceResponse, error) {
-	var jsonBalance BalanceResponse
-	method := "GET"
-	query := fmt.Sprintf("balances/%s", currency)
-
-	if c.Authenticated {
-		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-
-		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
-		signature := signMessage(c.APISecret, method, query, Nonce, "")
-
-		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
-
-		err := json.Unmarshal([]byte(resp), &jsonBalance)
-		if err != nil {
-			return jsonBalance, err
-		}
-
-		return jsonBalance, nil
+	u := path.Join(c.APIURL, "balances", currency)
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return BalanceResponse{}, err
 	}
 
-	err := errors.New("Authentication Required GetBalance")
+	resp, err := c.execute(req)
+	if err != nil {
+		return BalanceResponse{}, err
+	}
+
+	var jsonBalance BalanceResponse
+	err = json.Unmarshal([]byte(resp), &jsonBalance)
 	return jsonBalance, err
 }
 
 // GetOrders gets your orders made in a specific market with a specific status
-func (c *Client) GetOrders(marketID string, per, page int, state string, minimumExchanged float64) (MyOrdersResponse, error) {
-	var jsonOrders MyOrdersResponse
+func (c *Client) GetOrders(marketID, state string, per, page int, minimumExchanged float64) (MyOrdersResponse, error) {
 	const method string = "GET"
 
-	baseQuery := "markets/%s/orders?per=%d&page=%d&state=%s%minimumExchanged=%f"
-	query := fmt.Sprintf(baseQuery, marketID, per, page, state, minimumExchanged)
+	baseQuery := "%s/markets/%s/orders?per=%d&page=%d&state=%s%minimumExchanged=%f"
+	u := fmt.Sprintf(baseQuery, c.APIURL, marketID, per, page, state, minimumExchanged)
 
-	if c.Authenticated {
-		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
-		signature := signMessage(c.APISecret, method, query, Nonce, "")
-
-		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
-
-		err := json.Unmarshal([]byte(resp), &jsonOrders)
-		if err != nil {
-			return jsonOrders, err
-		}
-
-		return jsonOrders, nil
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return MyOrdersResponse{}, err
 	}
 
-	err := errors.New("Authentication Required GetOrders")
+	resp, err := c.execute(req)
+	if err != nil {
+		return MyOrdersResponse{}, err
+	}
+
+	var jsonOrders MyOrdersResponse
+	err = json.Unmarshal([]byte(resp), &jsonOrders)
 	return jsonOrders, err
 }
 
 // PostOrder creates a new order (bid or ask) in a specific market
 func (c *Client) PostOrder(marketID, orderType, priceType string, limit, amount float64) (OrderResponse, error) {
-	var jsonPostOrder OrderResponse
-
-	if c.Authenticated {
-		method := "POST"
-		query := fmt.Sprintf("markets/%s/orders", marketID)
-		var newOrder interface{}
-
-		if priceType == "market" {
-			newOrder = MarketOrder{orderType, priceType, amount}
-		} else if priceType == "limit" {
-			newOrder = LimitOrder{orderType, priceType, limit, amount}
-		}
-
-		myOrder, err := json.Marshal(newOrder)
-		if err != nil {
-			fmt.Printf("Unexpected error marshaling order values, check API docs \n %+v", err)
-			return jsonPostOrder, err
-		}
-
-		encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(myOrder))
-		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-
-		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
-		signature := signMessage(c.APISecret, method, query, Nonce, encodedRequestPayload)
-
-		resp := execute(method, finalURL, c.APIKey, signature, Nonce, string(myOrder))
-
-		err = json.Unmarshal([]byte(resp), &jsonPostOrder)
-		if err != nil {
-			err := fmt.Errorf("Error unmarshaling response from API, check docs\n %+v", err)
-			return jsonPostOrder, err
-		}
-
-		return jsonPostOrder, nil
+	var newOrder interface{}
+	switch priceType {
+	case "market":
+		newOrder = MarketOrder{orderType, priceType, amount}
+	case "limit":
+		newOrder = LimitOrder{orderType, priceType, limit, amount}
+	default:
+		return OrderResponse{}, fmt.Errorf(`Only "limit" and "market" supported - invalid %q`, priceType)
 	}
 
-	err := errors.New("AUTHENTICATION REQUIRED PostOrder")
-	return jsonPostOrder, err
+	myOrder, err := json.Marshal(newOrder)
+	if err != nil {
+		return OrderResponse{}, fmt.Errorf("Invalid order values, cannot write as json \n%+v", err)
+	}
+
+	var payload []byte
+	base64.StdEncoding.Encode(payload, myOrder)
+
+	u := fmt.Sprintf("%s/markets/%s/orders", c.APIURL, marketID)
+	req, err := http.NewRequest("POST", u, bytes.NewBuffer(payload))
+	if err != nil {
+		return OrderResponse{}, err
+	}
+
+	resp, err := c.execute(req)
+	if err != nil {
+		return OrderResponse{}, err
+	}
+
+	var o OrderResponse
+	err = json.Unmarshal([]byte(resp), &o)
+	return o, err
 }
 
 // CancelOrder cancels a specified order
 func (c *Client) CancelOrder(orderID string) (OrderResponse, error) {
 	var encodedRequestPayload []byte
 	base64.StdEncoding.Encode(encodedRequestPayload, []byte(`{ "state": "canceling" }`))
+
 	u := fmt.Sprintf("%s/orders/%s", c.APIURL, orderID)
 	req, err := http.NewRequest("PUT", u, bytes.NewBuffer(encodedRequestPayload))
 	if err != nil {
@@ -375,82 +344,65 @@ func (c *Client) CancelOrder(orderID string) (OrderResponse, error) {
 		return OrderResponse{}, err
 	}
 
-	var jsonCancelOrder OrderResponse
-	err = json.Unmarshal([]byte(resp), &jsonCancelOrder)
-	return jsonCancelOrder, err
+	var o OrderResponse
+	err = json.Unmarshal([]byte(resp), &o)
+	return o, err
 }
 
 // GetOrder returns the current state of the order
 func (c *Client) GetOrder(orderID string) (OrderResponse, error) {
-	var jsonOrder OrderResponse
-	method := "GET"
-	query := fmt.Sprintf("orders/%s", orderID)
+	u := fmt.Sprintf("%s/orders/%s", c.APIURL, orderID)
 
-	if c.Authenticated {
-		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
-
-		signature := signMessage(c.APISecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
-
-		err := json.Unmarshal([]byte(resp), &jsonOrder)
-		if err != nil {
-			return jsonOrder, err
-		}
-
-		return jsonOrder, nil
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return OrderResponse{}, err
 	}
 
-	err := errors.New("AUTHENTICATION REQUIRED GetOrder")
-	return jsonOrder, err
+	resp, err := c.execute(req)
+	if err != nil {
+		return OrderResponse{}, err
+	}
+
+	var o OrderResponse
+	err = json.Unmarshal([]byte(resp), &o)
+	return o, err
 }
 
 // GetDepositHistory returns the historic deposits
 func (c *Client) GetDepositHistory(currency string) (HistoricDespositsResponse, error) {
-	var jsonHistoricDeposit HistoricDespositsResponse
-	method := "GET"
-	query := fmt.Sprintf("currencies/%s/deposits", currency)
+	u := fmt.Sprintf("%s/currencies/%s/deposits", c.APIURL, currency)
 
-	if c.Authenticated {
-		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
-
-		signature := signMessage(c.APISecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
-
-		err := json.Unmarshal([]byte(resp), &jsonHistoricDeposit)
-		if err != nil {
-			return jsonHistoricDeposit, err
-		}
-
-		return jsonHistoricDeposit, nil
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return HistoricDespositsResponse{}, err
 	}
 
-	err := errors.New("AUTHENTICATION REQUIRED GetDepositHistory")
-	return jsonHistoricDeposit, err
+	resp, err := c.execute(req)
+	if err != nil {
+		return HistoricDespositsResponse{}, err
+	}
+
+	var h HistoricDespositsResponse
+	err = json.Unmarshal([]byte(resp), &h)
+	return h, err
 }
 
 // GetWithdrawHistory returns the historic withdrawls
 func (c *Client) GetWithdrawHistory(currency string) (HistoricWithdrawResponse, error) {
-	var jsonHistoricWithdraw HistoricWithdrawResponse
-	method := "GET"
-	query := fmt.Sprintf("currencies/%s/withdrawals", currency)
 
-	if c.Authenticated {
-		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
+	u := fmt.Sprintf("%s/currencies/%s/withdrawals", c.APIURL, currency)
 
-		signature := signMessage(c.APISecret, method, query, Nonce, "")
-		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
-
-		err := json.Unmarshal([]byte(resp), &jsonHistoricWithdraw)
-		if err != nil {
-			return jsonHistoricWithdraw, err
-		}
-
-		return jsonHistoricWithdraw, nil
+	req, err := http.NewRequest("GET", u, nil)
+	if err != nil {
+		return HistoricWithdrawResponse{}, err
 	}
 
-	err := errors.New("AUTHENTICATION REQUIRED GetWithdrawHistory")
-	return jsonHistoricWithdraw, err
+	resp, err := c.execute(req)
+	if err != nil {
+		return HistoricWithdrawResponse{}, err
+	}
+
+	var h HistoricWithdrawResponse
+	err = json.Unmarshal([]byte(resp), &h)
+	return h, err
 }
