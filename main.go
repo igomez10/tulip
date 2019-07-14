@@ -9,7 +9,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"path"
 	"strconv"
@@ -121,68 +120,6 @@ func (c *Client) GetTrades(marketID string) (TradesResponse, error) {
 	return jsonTrades, nil
 }
 
-func execute(method, completeURL, key, signature, Nonce, reqPayload string) string {
-	// responseData will contain the body of the response
-	// from the server, execute(...) will return this variable as a string
-	responseData := "Error - check the request method, check your apikey ,signature and nonce"
-
-	// httpClient	will make the http requests to the server
-	httpClient := &http.Client{}
-
-	// req is the request that will contain all the info
-	req, err := http.NewRequest(method, completeURL, nil)
-	if err != nil {
-		log.Fatalf("Error creating new request: \n %+v ", err)
-	}
-
-	if method == "GET" && key == "" && signature == "" && Nonce == "" {
-		// The GET requests that do not require authentication will end here
-
-		// res is the response from the server when the request is executed
-		res, err := httpClient.Do(req)
-		if err != nil {
-			// TODO return error instead of fatal
-			log.Fatalf("Error executing new request \n %+v", err)
-		}
-
-		defer res.Body.Close()
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Fatalf("Error reading response \n %+v", err)
-		}
-
-		responseData = string(body)
-
-	} else if key != "" && signature != "" && Nonce != "" {
-		// The POST AND GET requests that DO NEED AUTHENTICATION will end here
-		req.Header.Set("X-SBTC-SIGNATURE", signature)
-		req.Header.Set("X-SBTC-APIKEY", key)
-		req.Header.Set("X-SBTC-NONCE", Nonce)
-		req.Header.Set("Content-Type", "application/json")
-
-		if method == "POST" || method == "PUT" {
-			req.Body = ioutil.NopCloser(strings.NewReader(reqPayload))
-		}
-
-		res, err := httpClient.Do(req)
-		if err != nil {
-			log.Fatalf("Error executing new request \n %s", err)
-		}
-
-		defer res.Body.Close()
-
-		body, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			log.Fatalf("Error reading response \n %+v", err)
-		}
-
-		responseData = string(body)
-	}
-
-	return responseData
-}
-
 func (c *Client) execute(r *http.Request) (string, error) {
 	nonce := getNonce()
 	r.Header.Set("X-SBTC-APIKEY", c.APIKey)
@@ -228,23 +165,6 @@ func (c *Client) signMessage(r *http.Request, nonce string) (string, error) {
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
-func signMessage(APISecret, method, query, Nonce, body string) string {
-	var stringMessage string
-
-	if body != "" {
-		stringMessage = fmt.Sprintf("%s/api/v2/%s/%s/%s", method, query, body, Nonce)
-	} else {
-		stringMessage = fmt.Sprintf("%s/api/v2/%s/%s", method, query, Nonce)
-	}
-
-	key := []byte(APISecret)
-	h := hmac.New(sha512.New384, key)
-	h.Write([]byte(stringMessage))
-	signature := hex.EncodeToString(h.Sum(nil))
-
-	return signature
 }
 
 // GetBalances get the wallet balances in all cryptocurrencies and fiat currencies
