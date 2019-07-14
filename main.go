@@ -1,6 +1,7 @@
 package tulip
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/sha512"
 	"encoding/base64"
@@ -25,49 +26,60 @@ type Client struct {
 	APIKey        string
 	APISecret     string
 	Authenticated bool
+	httpClient    http.Client
 }
 
 // NewClient returns a new Client
-func NewClient(key string, apisecret string) *Client {
+func NewClient(key string, APISecret string) *Client {
 	var newClient Client
-	if key != "" && apisecret != "" {
+	if key != "" && APISecret != "" {
 		newClient.Authenticated = true
 	}
 
 	newClient.APIURL = APIURL
 	newClient.APIKey = key
-	newClient.APISecret = apisecret
-
+	newClient.APISecret = APISecret
+	newClient.httpClient = http.Client{Timeout: time.Second * 10}
 	return &newClient
+}
+
+func getNonce() string {
+	return strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
 }
 
 // GetMarkets Returns info about all markets
 func (c *Client) GetMarkets() (MarketsResponse, error) {
-	finalURL := fmt.Sprintf("%s/markets", c.APIURL)
-
-	resp := execute("GET", finalURL, "", "", "", "")
-
-	var jsonMarketsResponse MarketsResponse
-	err := json.Unmarshal([]byte(resp), &jsonMarketsResponse)
+	u := fmt.Sprintf("%s/markets", c.APIURL)
+	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
-		return jsonMarketsResponse, err
+		return MarketsResponse{}, err
 	}
 
-	return jsonMarketsResponse, nil
+	res, err := c.execute(req)
+	if err != nil {
+		return MarketsResponse{}, err
+	}
+
+	var jsonMarketsResponse MarketsResponse
+	err = json.Unmarshal([]byte(res), &jsonMarketsResponse)
+	return jsonMarketsResponse, err
 }
 
 // GetTicker Returns the exchange rate for a given ticker
 func (c *Client) GetTicker(ticker string) (MarketResponse, error) {
-	finalURL := fmt.Sprintf("%s/markets/%s", c.APIURL, ticker)
-
-	resp := execute("GET", finalURL, "", "", "", "")
-
-	var jsonMarketResponse MarketResponse
-	err := json.Unmarshal([]byte(resp), &jsonMarketResponse)
+	u := fmt.Sprintf("%s/markets/%s", c.APIURL, ticker)
+	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
-		return jsonMarketResponse, err
+		return MarketResponse{}, err
 	}
 
+	res, err := c.execute(req)
+	if err != nil {
+		return MarketResponse{}, err
+	}
+
+	var jsonMarketResponse MarketResponse
+	err = json.Unmarshal([]byte(res), &jsonMarketResponse)
 	return jsonMarketResponse, nil
 }
 
@@ -75,29 +87,37 @@ func (c *Client) GetTicker(ticker string) (MarketResponse, error) {
 // It shows the best offers (bid, ask) and the price from the
 // last transaction, daily volume and the price in the last 24 hours
 func (c *Client) GetOrderBook(marketID string) (OrderBook, error) {
-	finalURL := fmt.Sprintf("%s/markets/%s/order_book", c.APIURL, marketID)
-	resp := execute("GET", finalURL, "", "", "", "")
-
-	var orderBook OrderBook
-	err := json.Unmarshal([]byte(resp), &orderBook)
+	u := fmt.Sprintf("%s/markets/%s/order_book", c.APIURL, marketID)
+	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
-		return orderBook, err
+		return OrderBook{}, err
 	}
 
+	res, err := c.execute(req)
+	if err != nil {
+		return OrderBook{}, err
+	}
+
+	var orderBook OrderBook
+	err = json.Unmarshal([]byte(res), &orderBook)
 	return orderBook, nil
 }
 
 //GetTrades returns a list of recent trades in a given market
 func (c *Client) GetTrades(marketID string) (TradesResponse, error) {
-	finalURL := fmt.Sprintf("%s/markets/%s/trades", c.APIURL, marketID)
-	resp := execute("GET", finalURL, "", "", "", "")
-	var jsonTrades TradesResponse
-
-	err := json.Unmarshal([]byte(resp), &jsonTrades)
+	u := fmt.Sprintf("%s/markets/%s/trades", c.APIURL, marketID)
+	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
-		return jsonTrades, err
+		return TradesResponse{}, err
 	}
 
+	res, err := c.execute(req)
+	if err != nil {
+		return TradesResponse{}, err
+	}
+
+	var jsonTrades TradesResponse
+	err = json.Unmarshal([]byte(res), &jsonTrades)
 	return jsonTrades, nil
 }
 
@@ -163,7 +183,52 @@ func execute(method, completeURL, key, signature, Nonce, reqPayload string) stri
 	return responseData
 }
 
+func (c *Client) execute(r *http.Request) (string, error) {
+	nonce := getNonce()
+	r.Header.Set("X-SBTC-APIKEY", c.APIKey)
+	r.Header.Set("X-SBTC-NONCE", nonce)
+	r.Header.Set("Content-Type", "application/json")
+
+	if c.Authenticated {
+		signature, err := c.signMessage(r, nonce)
+		if err != nil {
+			return "", err
+		}
+		r.Header.Set("X-SBTC-SIGNATURE", signature)
+	}
+
+	res, err := c.httpClient.Do(r)
+	if err != nil {
+		return "", fmt.Errorf("error on http request \n %+v", err)
+	}
+
+	defer res.Body.Close()
+
+	body, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return "", fmt.Errorf("error reading response \n %+v", err)
+	}
+
+	return string(body), nil
+}
+
 // HERE STARTS THE PRIVATE CALLS
+
+func (c *Client) signMessage(r *http.Request, nonce string) (string, error) {
+	// {GET|POST|PUT} {path} {base64_encoded_body} {nonce}
+	p := strings.TrimPrefix(r.URL.String(), c.APIURL)
+	b := fmt.Sprintf("%s %s %s %s", r.Method, p, r.Body, nonce)
+
+	key := []byte(c.APISecret)
+	h := hmac.New(sha512.New384, key)
+
+	_, err := h.Write([]byte(b))
+	if err != nil {
+		return "", err
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
+}
 
 func signMessage(APISecret, method, query, Nonce, body string) string {
 	var stringMessage string
@@ -183,28 +248,20 @@ func signMessage(APISecret, method, query, Nonce, body string) string {
 }
 
 // GetBalances get the wallet balances in all cryptocurrencies and fiat currencies
-func (c *Client) GetBalances() (BalancesResponse, error) {
-	var jsonBalances BalancesResponse
-	method := "GET"
-	query := "balances"
-
-	if c.Authenticated {
-		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-
-		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
-		signature := signMessage(c.APISecret, method, query, Nonce, "")
-
-		resp := execute(method, finalURL, c.APIKey, signature, Nonce, "")
-
-		err := json.Unmarshal([]byte(resp), &jsonBalances)
-		if err != nil {
-			return jsonBalances, err
-		}
-
-		return jsonBalances, nil
+func (c *Client) GetBalances() (BalanceResponse, error) {
+	u := fmt.Sprintf("%s/balances", c.APIURL)
+	req, err := http.NewRequest("GET", u, nil)
+	res, err := c.execute(req)
+	if err != nil {
+		return BalanceResponse{}, err
 	}
 
-	err := errors.New("Authentication Required GetBalances")
+	var jsonBalances BalanceResponse
+	err = json.Unmarshal([]byte(res), &jsonBalances)
+	if err != nil {
+		return jsonBalances, err
+	}
+
 	return jsonBalances, err
 }
 
@@ -305,28 +362,21 @@ func (c *Client) PostOrder(marketID, orderType, priceType string, limit, amount 
 
 // CancelOrder cancels a specified order
 func (c *Client) CancelOrder(orderID string) (OrderResponse, error) {
-	var jsonCancelOrder OrderResponse
-	method := "PUT"
-	query := fmt.Sprintf("orders/%s", orderID)
-
-	if c.Authenticated {
-		Nonce := strconv.FormatInt(time.Now().UTC().UnixNano(), 10)
-		finalURL := fmt.Sprintf("%s/%s", c.APIURL, query)
-		requestPayloadString := `{ "state": "canceling" }`
-		encodedRequestPayload := base64.StdEncoding.EncodeToString([]byte(requestPayloadString))
-
-		signature := signMessage(c.APISecret, method, query, Nonce, encodedRequestPayload)
-		resp := execute(method, finalURL, c.APIKey, signature, Nonce, requestPayloadString)
-
-		err := json.Unmarshal([]byte(resp), &jsonCancelOrder)
-		if err != nil {
-			return jsonCancelOrder, err
-		}
-
-		return jsonCancelOrder, nil
+	var encodedRequestPayload []byte
+	base64.StdEncoding.Encode(encodedRequestPayload, []byte(`{ "state": "canceling" }`))
+	u := fmt.Sprintf("%s/orders/%s", c.APIURL, orderID)
+	req, err := http.NewRequest("PUT", u, bytes.NewBuffer(encodedRequestPayload))
+	if err != nil {
+		return OrderResponse{}, err
 	}
 
-	err := errors.New("AUTHENTICATION REQUIRED CancelOrder")
+	resp, err := c.execute(req)
+	if err != nil {
+		return OrderResponse{}, err
+	}
+
+	var jsonCancelOrder OrderResponse
+	err = json.Unmarshal([]byte(resp), &jsonCancelOrder)
 	return jsonCancelOrder, err
 }
 

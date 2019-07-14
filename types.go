@@ -53,12 +53,8 @@ type TradesResponse struct {
 	} `json:"trades"`
 }
 
-type BalancesResponse struct {
-	Balances []Balance
-}
-
 type BalanceResponse struct {
-	Balance Balance
+	Balance []Balance
 }
 
 type Balance struct {

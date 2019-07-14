@@ -2,3 +2,4 @@
 /src/golang.org
 /bin
 /pkg
+/vendor
